@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Ajax</title>
+
+    <link rel="stylesheet" href="Scripts/element-ui/lib/theme-chalk/index.css" />
+
+    <script src="Scripts/vue/dist/vue.js"></script>
+    <script src="Scripts/element-ui/lib/index.js"></script>
+    <script src="Scripts/es6-promise/dist/es6-promise.auto.js"></script>
+    <script src="Scripts/axios/dist/axios.js"></script>
+
+    <script src="Scripts/cool/cool-ajax.js"></script>
+
+</head>
+
+<body>
+    <div id="sample">
+        <el-row>
+            <el-switch v-model="withCredentials" active-text="带cookie" inactive-text="不带cookie" @change="changed"></el-switch>
+            </el-switch>
+            <el-input type="textarea" v-model="cookie" :rows="5"></el-input>
+        </el-row>
+        <el-row>
+            <el-input style="width: 350px" v-model="url"></el-input>
+            <el-button @click="clicked" type="primary" v-loading="loading">ajax it</el-button>
+        </el-row>
+        <el-row>
+            <el-input style="width: 350px" v-model="url2"></el-input>
+            <el-button @click="clicked1" type="primary" v-loading="loading">ajax it</el-button>
+        </el-row>
+        <el-dialog title="请求结果" :visible.sync="dialogVisible" width="90%" top="5vh">
+            {{result}}
+        </el-dialog>
+    </div>
+    <script id="sampleScript">
+        new Vue({
+            el: '#sample',
+            data: {
+                // withCredentials: true,
+                loading: false,
+                dialogVisible: false,
+                url: 'http://192.168.1.103:8880/login',
+                url2: 'http://192.168.1.103:8880/system/sysDept/list',
+                params: { username: 'admin', password: '111111' },
+                query: { password: '111111', username: "admin" },
+                pager: { current: 4, size: 20 },
+                result: undefined,
+            },
+            computed: {
+                cookie: {
+                    get: function () { return document.cookie },
+                    set: function (v) { document.cookie = v }
+                }
+            },
+            methods: {
+                changed: function () {
+                    axios.defaults.withCredentials = this.withCredentials
+                },
+                clicked: function () {
+                    this.loading = true
+                    coolAjax(this.url, this.success, {}, {}, this.fin, 'POST', this.params, undefined, undefined, this.then)
+                },
+                clicked1: function () {
+                    this.loading = true
+                    coolAjax(this.url2, this.success, this.query, this.pager, this.fin, 'GET', undefined, undefined, undefined, this.then)
+                },
+                success: function (data) {
+                    this.result = JSON.stringify(data)
+                    this.dialogVisible = true
+                },
+                fin: function () {
+                    this.loading = false
+                },
+                then: function (response) {
+                    this.$alert(JSON.stringify(response.data), 'response.data')
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>

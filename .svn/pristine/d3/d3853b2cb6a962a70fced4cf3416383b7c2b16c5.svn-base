@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="Scripts/element-ui/lib/theme-chalk/index.css" />
+    <script src="Scripts/vue/dist/vue.js"></script>
+    <script src="Scripts/element-ui/lib/index.js"></script>
+    <script src="Scripts/axios/dist/axios.min.js"></script>
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <table>
+            <tr>
+                <td>
+                    <span>仓库编码：</span>
+                </td>
+                <td>
+                <el-input v-model="whid" size="small"></el-input>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span>单号：</span>
+                </td>
+                <td>
+                <el-input v-model="formno" size="small"></el-input>
+                </td>
+            </tr>
+
+        </table>
+        <div style="margin-top: 10px;">
+            <el-button type="small" @click="save">保存</el-button>
+            <el-button type="small" @click="back">返回</el-button>
+        </div>
+    </div>
+    <script>
+        var app = new Vue({
+            el: "#app",
+            data: {
+                whid: '',
+                formno: '',
+            },
+            method:{
+                save:function(){
+                    
+                    axios.post('http://192.168.1.98:8888/api/orderHdr/save', {
+                    whid:this.whid,
+                    ts:'',
+                    formno:this.formno
+                    }).then(function (response) {
+                       if(response.success){
+                           alert('消息：'+response.message);
+                       }
+                       else{
+                           break;
+                       }
+                     })
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>

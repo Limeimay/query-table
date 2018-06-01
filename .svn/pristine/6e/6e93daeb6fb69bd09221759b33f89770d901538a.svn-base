@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="Scripts/element-ui/lib/theme-chalk/index.css" />
+    <script src="Scripts/vue/dist/vue.js"></script>
+    <script src="Scripts/element-ui/lib/index.js"></script>
+    <script src="Scripts/axios/dist/axios.min.js"></script>
+    <script src="Scripts/cool/cool-query.js"></script>
+    <title>query</title>
+</head>
+<body>
+    <div id="sample">
+        <el-container style="height: 400px;">
+            <el-aside>
+                <cool-query size="mini" :fields.sync="fields" :values.sync="queryValues"></cool-query>
+            </el-aside>
+            <el-main>
+                <div>配置数据结构</div>
+                <div style="border: 1px solid #999999; height:200px; overflow-y: scroll">{{fields}}</div>
+                <p></p>
+                <div>查询条件数据结构(实时更新)：</div>
+                <div style="border: 1px solid #999999;">{{queryValues}}</div>
+            </el-main>
+        </el-container>
+    </div>
+    <script>
+        var vm = new Vue({
+            el: '#sample',
+            data: {
+                fields: undefined,
+                queryValues: undefined,
+            }
+        })
+    </script>
+</body>
+</html>

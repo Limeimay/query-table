@@ -1,0 +1,684 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>
+        公共模板查询Demo
+    </title>
+        <link href="./resources/style/easyui.css" rel="stylesheet" />
+        <link href="./resources/style/icon.css" rel="stylesheet" />
+        <link href="./resources/style/Site.css" rel="stylesheet" />
+        <script src="./resources/js/jquery/jquery.min.js"></script>
+        <script src="./resources/js/easyui/jquery.easyui.min.js"></script>
+        <script src="./resources/js/easyui/easyui-lang-zh_CN.js" type="text/javascript" ></script>
+        <script src="./resources/js/ClsSearch.js"></script>
+        <script src="./resources/js/Base.js"></script>
+        <style>
+            .form-control {
+                height: 20px;
+                width: 200px;
+            }
+                    #conditionPanle tr td{
+                text-align:center;
+                height:40px;
+                width:90px;
+                overflow:visible;
+                color:black;
+            }
+            #conditionPanle tr td:first-child{
+                width:100px;
+                text-align:right;
+                color:black;
+            }
+            #conditionPanle tr td:last-child{
+                width:250px;
+                text-align:left;
+                color:black;
+            }
+            #conditionPanle tr td input{
+                width:200px;
+                height:20px;
+                color:black;
+            }
+                    .nav > li .dropdown-menu {
+                margin: 0;
+            }
+            .nav > li:hover .dropdown-menu {
+                display: block;
+            }
+            .dropdown-menu li a{
+                float:left;
+            }
+            .dropdown-menu li span{
+                float:left;
+            }
+            .modal-header{
+                cursor:move;
+            }
+        </style>
+        <script type="text/javascript">
+            var dlgOption = { "title": "", "height": "600px", "width": "800px", "params": {} };
+            function openDlg(_url, frmID, options, callback) {
+                parent.openDlg(_url, frmID, options, callback);
+            }
+            function selectEmployee(id, callback) {
+                var _url = "@Request.ApplicationPath/../Common/EmployeeInfo";
+                dlgOption.title = "选择员工";
+                dlgOption.width = "900px";
+                dlgOption.height = "600px";
+                dlgOption.params = { "condition": [{ "Field": "ID", "Mode": "不参与", "Value": id }], "data": { "GridSelectedID": id } };
+                openDlg(_url, "frmEmp", dlgOption, function (data) {
+                    callback(data);
+                });
+            }
+            function selectDepartment(id, callback) {
+                var _url = "@Request.ApplicationPath/../Common/DepartmentInfo";
+                dlgOption.title = "选择部门";
+                dlgOption.width = "900px";
+                dlgOption.height = "600px";
+                dlgOption.params = { "condition": [{ "Field": "ID", "Mode": "不参与", "Value": id }], "data": { "GridSelectedID": id } };
+                openDlg(_url, "frmDep", dlgOption, function (data) {
+                    callback(data);
+                });
+            }
+            function selectSupplier(id, callback) {
+                var _url = "@Request.ApplicationPath/../Common/Supplier";
+                dlgOption.title = "选择供应商";
+                dlgOption.width = "900px";
+                dlgOption.height = "600px";
+                dlgOption.params = { "condition": [{ "Field": "ID", "Mode": "不参与", "Value": id }], "data": { "GridSelectedID": id } };
+                openDlg(_url, "frmSup", dlgOption, function (data) {
+                    callback(data);
+                });
+            }
+            function selectGoods(code, callback) {
+                var _url = "@Request.ApplicationPath/../Common/Goods";
+                dlgOption.title = "选择物料";
+                dlgOption.width = "900px";
+                dlgOption.height = "600px";
+                dlgOption.params = { "condition": [{ "Field": "ID", "Mode": "不参与", "Value": code }], "data": { "GridSelectedID": code } };
+                openDlg(_url, "frmGoods", dlgOption, function (data) {
+                    callback(data);
+                });
+            }
+        </script>
+        <script>
+            var rootUrl = '';
+            var searchObj;
+            //更改查询条件的菜单打开前的事件触发
+            function OnShowMenu() {
+    
+            }
+            //查询条件菜单项点击的事件
+            function menuItemClick(item) {
+                menuClickObj = searchObj.getClickedSearchObj();
+                var num = item.id;
+                var displayText = "";
+                var sname = item.text;
+                var hObj = $(item);
+                var tdObj = menuClickObj.parent().next();
+                var iptObj = tdObj.find('span .textbox-text');
+                iptObj.focus();
+                iptObj.select();
+                menuClickObj.text(item.text);
+                menuClickObj.attr("value", item.id);
+                menuClickObj.attr("title", sname);
+                menuClickObj.attr("smode", sname);
+            }
+            var mouseDragDown;
+            function setControlValue(elID, controlType, value) {
+                var control = $("#" + elID);
+                if (controlType == "combobox") {
+                    control.combobox("setValue", value);
+                }
+                else if (controlType == "numberbox") {
+                    control.numberbox("setValue", value);
+                }
+                else if (controlType == "datebox") {
+                    var nextID = "";
+                    var idSplit = id.split("_");
+                    if (idSplit.length = 3) {
+                        if (idSplit[1] == "Start") {
+                            nextID = idSplit[0] + "_End_" + idSplit[2];
+                        }
+                    }
+                    if (nextID != "") {
+                        control.datebox("setValue", value.start);
+                        cNext = $("#" + nextID).datebox("setValue", value.end);
+                    }
+                    else {
+                        control.datebox("setValue", value.start);
+                    }
+                }
+                else if (controlType == "textbox") {
+                    control.textbox("setValue", value);
+                }
+                else if (controlType == "checkbox") {
+                    control.attr("checked", (value ? "checked" : ""));
+                    control.next().attr("value", value);
+                }
+            }
+            function setDefaultCondition(cond) {
+                for (var i = 0; i < cond.length; i++) {
+                    c = cond[i];
+                    var tr = $("#tbCondition tr[fieldname='" + c.Field + "']");
+                    var tdMode = tr.find("td:eq(1)");
+                    var iptMode = tdMode.children(":first-child");
+                    iptMode.attr("smode", c.Mode);
+                    iptMode.html(c.Mode);
+    
+    
+                    var tdValue = tr.find("td:eq(2)");
+                    var iptValue = tdValue.children(":first-child");
+                    var controlType = iptValue.attr("class").split(" ")[0].split("-")[1];
+                    var id = iptValue.attr("id");
+                    setControlValue(id, controlType, c.Value);
+                }
+                tsbSearch_click();
+            }
+            function init() {
+                searchObj = new ClsSearch('@rootUrl');
+    
+                searchObj.loadSearchModeMenu();
+                searchObj.SetNormalMode(false);
+                $(document).on("mousedown", ".modal-header", function (e) {
+                    if ($(e.target).hasClass("close"))//点关闭按钮不能移动对话框  
+                        return;
+                    mouseDragDown = true;
+                    moveTartet = $(this).parent();
+                    mouseStartPoint = { "left": e.clientX, "top": e.clientY };
+                    oldP = moveTartet.offset();
+                });
+                $(document).on("mouseup", function (e) {
+                    mouseDragDown = false;
+                    moveTartet = undefined;
+                    mouseStartPoint = { "left": 0, "top": 0 };
+                    oldP = { "left": 0, "top": 0 };
+                });
+                $(document).on("mousemove", function (e) {
+                    if (!mouseDragDown || moveTartet == undefined) return;
+                    var mousX = e.clientX;
+                    var mousY = e.clientY;
+                    if (mousX < 0) mousX = 0;
+                    if (mousY < 0) mousY = 25;
+                    mouseEndPoint = { "left": mousX, "top": mousY };
+                    var width = moveTartet.width();
+                    var height = moveTartet.height();
+                    mouseEndPoint.left = mouseEndPoint.left - (mouseStartPoint.left - oldP.left);//移动修正，更平滑  
+                    mouseEndPoint.top = mouseEndPoint.top - (mouseStartPoint.top - oldP.top);
+                    moveTartet.offset(mouseEndPoint);
+                });
+    //             currentDialog = getCurrentDialog();
+    //             if (currentDialog != undefined) {
+    //                 var obj = getParentParam();
+    //                 if (obj != undefined) {
+    //                     var cond = obj.condition;
+    //                     if (cond != undefined) {
+    //                         setDefaultCondition(cond);
+    //                     }
+    //                     var data = obj.data;
+    //                 }
+    //             }
+                onLoad();
+                try {
+                    if (onLoaded != undefined && onLoaded != null)
+                        onLoaded();
+                }
+                catch (err) {
+    
+                }
+                $(".easyui-datagrid").each(function(){
+                    $(this).datagrid('keyCtr');
+                });
+            }
+            function tsbReturnCur_click() {
+                try {
+                    var data = tsbReturn_click();
+                    if (data == undefined)
+                        return;
+                    currentDialog.save(data);
+                    currentDialog.close();
+                }
+                catch (err) {
+                    $.messager.show({
+                        title: err.name,
+                        msg: err.message,
+                        timeout: 5000,
+                        showType: 'slide'
+                    });
+                }
+            }
+            //var cybDlgOption = { "title": "", "height": "600px", "width": "800px", "params": {} };
+            function openDlg(_url, frmID, options, callback) {
+                if(options == undefined){
+                    options = { "title": frmID, "height": "600px", "width": "800px", "params": {} };
+                }
+                
+                var dlg = new ClsModelDialog(_url, frmID);
+                if (options.title == "" | options.title == undefined) {
+                    options.title = frmID;
+                }
+                dlg.open(options.title, options.width, options.height, options.params, callback);
+            }
+            function activeColumn(value, row, index) {
+                var str = "<input disabled type='checkbox' onclick='return false'  ";
+                if (value) {
+                    str += " checked />";
+                }
+                else {
+                    str += " />";
+                }
+                return str;
+            }
+            function btn_model_resetClick() {
+                searchObj.reset();
+            }
+        </script>
+    </head>
+    <body>
+        <div class="easyui-layout" data-options="fit:true">
+               <div data-options="region:'north'" style="height:30px">
+                <div id="divToolBar">
+                    <a href="#" permission="Read" onclick="javascript:tsbSearch_click()" class="easyui-linkbutton" data-options="iconCls:'icon-search' " plain="true" style="margin-left:20px">查找</a>
+                    <script type="text/javascript">
+                        var isSelectForm = false;
+                        if (top.location!=location) {
+                            var str = parent.location.pathname;
+                            var index = str.lastIndexOf("\/");
+                            var str = str.substring(index + 1, str.length).toLowerCase();
+                            if (str != "home") {
+                                document.write('<a href="#" permission="Read" onclick="javascript:tsbReturnCur_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-return\'" plain="true">返回</a>');
+                                document.write('<a href="#" onclick="javascript:tsbClose_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-cancel\'" plain="true" style="margin-left:20px">取消</a>');
+                                isSelectForm = true;
+                            }
+                        }
+                        if (!isSelectForm) {
+                            document.write('<a href="#" permission="AddNew" onclick="javascript:tsbCreate_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-add\' " plain="true">新建</a>');
+                            document.write('<a href="#" permission="Modify" onclick="javascript:tsbOpen_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-edit\'" plain="true">编辑</a>');
+                            document.write('<a href="#" permission="Delete" onclick="javascript:tsbDelete_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-remove\'" plain="true">删除</a>');
+                            document.write('<a href="#" permission="Check" onclick="javascript:tsbCheck_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-ok\'" plain="true">审核</a>');
+                            document.write('<a href="#" permission="Print" onclick="javascript:tsbPrint_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-print\'" plain="true">打印</a>');
+                            document.write('<a href="#" permission="Export" onclick="javascript:tsbExport_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-save\'" plain="true">导出</a>');
+                            document.write('<a href="#" permission="Cal" onclick="javascript:tsbCal_click()" class="easyui-linkbutton" data-options="iconCls:\'icon-large-chart\'" plain="true">统计</a>');
+                        }
+                    </script>
+              </div>
+            </div>
+            
+            
+        <div data-options="region:'west',split:true,iconCls:'icon-help'" title="查询条件" style="width:250px;">
+             <table id="tbCondition">
+                 <tbody></tbody>
+             </table>
+         </div>
+    
+            
+            
+        <div data-options="region:'center',title:'查询结果',border:false, iconCls:'icon-grid'">
+            <div class="easyui-layout" data-options="fit:true">
+                <div data-options="region:'center',title:'',border:false, iconCls:'icon-grid'">
+                    <table id="grdHdr" class="easyui-datagrid" pagination="true" pageSize=20 fit="true" rownumbers="true" data-options="pageSize:20,remoteSort:false,multiSort:true,border:false,singleSelect:true,onSelect:onHdrGridSelect">
+                    <thead>
+                        <tr>
+                            <!--这里输入列的定义-->
+                            <th data-options="field:'whid'" style="width:100px">仓库编码</th>
+                            <th data-options="field:'formno',sortable:true" style="width:150px">单号</th>
+                            <!-- 
+                            <th data-options="field:'Active',formatter: activeColumn" style="width:60px">可用</th>
+                            <th data-options="field:'Formno',sortable:true" style="width:150px">单号</th>
+                            <th data-options="field:'PFormno'">PFormno</th>
+                            <th data-options="field:'BillDateTime',formatter:datetimebillColumn,sortable:true" style="width:120px">日期</th>
+                            <th data-options="field:'SupplierName',sortable:true" style="width:100px">供应商</th>
+                            <th data-options="field:'Lister'" style="width:80px">制单员</th>
+                            <th data-options="field:'Buyer'" style="width:80px">采购员</th>
+                            <th data-options="field:'Payment',sortable:true" style="width:120px">支付方式</th>
+                            <th data-options="field:'APay',align:'right',formatter:formatMoney" style="width:100px">应付款</th>
+                            <th data-options="field:'HPay',align:'right',formatter:formatMoney" style="width:100px">已付款</th>
+                            <th data-options="field:'CheckState',sortable:true" style="width:100px">审核状态</th>
+                            <th data-options="field:'CheckerName',sortable:true" style="width:80px">审核员</th>
+                            <th data-options="field:'CheckDate',formatter:datetimebillColumn" style="width:90px">审核日期</th> 
+                            -->
+                            <th data-options="field:'contractNo'" style="width:150px">合同号</th>
+                            <th data-options="field:'description'" style="width:200px">描述</th>
+                            <th data-options="field:'ts',hidden:true" style="width:200px">描述</th>
+                        </tr>
+                    </thead>
+                    </table>
+                </div>
+                <div data-options="height:170,split:true,region:'south',border:false, iconCls:'icon-grid'">
+                    <table id="grdDtl" class="easyui-datagrid" data-options="border:false,singleSelect:true,rowStyler:rowStyler">
+                        <thead>
+                            <tr>
+                                <th data-options="field:'sn'" style="width:120px">序号</th>
+                                <th data-options="field:'code'" style="width:90px">产品编号</th>
+                                <th data-options="field:'qty'" style="width:60px">数量</th>
+                                <th data-options="field:'leave'" style="width:60px">剩余</th>
+                                <th data-options="field:'codeName'" style="width:200px">名称</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="edit-window" >
+            <div style="padding: 10px 10px 10px 0px;" id="divForm">
+            <form id="editform" method="post">
+                <table class="edit-table">
+                 <tr>
+                     <th>仓库编码：</th>
+                     <td>
+                         <input id="TS" name="TS" type="hidden"/>
+                         <input id="WHID" name="WHID" class="easyui-validatebox textbox t50" required="true"/>
+                     </td>
+                 </tr>  
+                 <tr>
+                     <th>单&nbsp;&nbsp;&nbsp;&nbsp;号：</th>
+                     <td>
+                         <input id="Formno" name="Formno" class="easyui-validatebox textbox t50" required="true" />
+                     </td>
+                 </tr>
+                 <tr>
+                     <td colspan="2" style="text-align: center;">
+                         <button onclick="save()" id="btn-save" class="btn-primary blue-btn">保&nbsp;存</button>&nbsp;&nbsp;          
+                            <button onclick="javascript:__win.window('close');" id="btn-cancel" class="btn-primary red-btn">返&nbsp;回</button> 
+                     </td>
+                 </tr>
+                </table>
+            </form>
+            </div>
+        </div>
+    
+    
+            
+        <script type="text/javascript">
+            var hdrTableName = "[Hdr]";
+            var dtlTableName = "[Dtl]";
+            function onLoad() {
+                $("#grdHdr").datagrid('getPager').pagination({
+                    onSelectPage: function (pageNumber, pageSize) {
+                        var options = $(this).pagination("options");
+                        tsbSearch_click(pageNumber,options.total);
+                    }
+                });
+                //$("#grdHdr").datagrid('keyCtr');
+    
+                searchObj.addDateControl("日期", "BillDateTime", hdrTableName, "之间");
+                searchObj.addStringControl("单号", "Formno", hdrTableName);
+    
+                searchObj.addStringControl("应付", "APay", hdrTableName);
+    
+                searchObj.addStringControl("制单员", "Lister", hdrTableName);
+                searchObj.addStringControl("采购员", "Buyer", hdrTableName);
+                var _url = rootUrl+"/ClientData";
+                //searchObj.addStringControl("支付方式", "Payment", hdrTableName);
+                //searchObj.addStringControl("审核状态", "CheckState", hdrTableName);
+                //searchObj.addStringControl("审核员", "Checker", hdrTableName);
+                //searchObj.addDateControl("审核日期", "CheckDate", hdrTableName);
+                searchObj.addStringControl("合同号", "ContractNo", hdrTableName);
+                //searchObj.addDecimalControl("应付", "APay", hdrTableName);
+                //searchObj.addDecimalControl("已付", "HPay", hdrTableName);
+                searchObj.addStringControl("描述", "Description", hdrTableName);
+                
+                //添加明细查询条件控件
+                searchObj.addStringControl("产品编码", "Code", dtlTableName);
+                searchObj.addDecimalControl("单价", "Price", dtlTableName, "*大于");
+                searchObj.addDecimalControl("数量", "Qty", dtlTableName);
+                searchObj.addDecimalControl("剩余", "Leave", dtlTableName,"*大于");
+                searchObj.addCheckBoxControl("有效", "Active", dtlTableName);
+                //searchObj.addCheckBoxControl("冲减", "Tag", dtlTableName, "*为空");
+            }
+        </script>
+        <script type="text/javascript">
+            var __win;
+            $(function() {
+                __win = $('#edit-window').window({
+                    title: '采购申请单编辑',
+                    cls: 'color:#fff',
+                    headerCls: 'color:#fff',
+                    bodyCls: 'color:#fff',
+                    width: 550,
+                    height: 200,
+                    shadow: true,
+                    modal: true,
+                    closed: true,
+                    minimizable: false,
+                    maximizable: false,
+                    collapsible: false
+                });
+                // tsbSearch_click();
+            });
+        
+            var _condition;
+            function tsbSearch_click(curPage,total) {
+                
+                if (curPage == undefined) {
+                    curPage = 1;
+                }
+                if (curPage < 1) {
+                    curPage = 1;
+                }
+                if (total == undefined) {
+                    total = 0;
+                    _condition = searchObj.getCondition();
+                }
+                var condition = _condition;
+                $("#grdDtl").datagrid("loadData", []);
+                try{
+                    var jsPager = $("#grdHdr").datagrid('getPager');
+                    var options = jsPager.pagination("options");
+                    var pager = { "rows": options.pageSize, "page": curPage }
+                }
+                catch (err) {
+                    alert(err.message);
+                }
+                var _url = 'http://localhost:8888/api/orderHdr/queryByPage';
+                $.ajax({  
+                    url:_url,    
+                    type: "POST",  
+                    dataType: "json",  
+                    contentType:"application/json",
+                    // data: JSON.stringify(condition),  
+                    data: JSON.stringify({
+                        "page" : pager,
+                        "condition" : condition
+                    }),  
+                    success: function(data) { 
+                        $("#grdHdr").datagrid("loadData", data);
+                    },  
+                    error:function(XMLHttpRequest, textStatus, errorThrown){  
+                        switch(XMLHttpRequest.status){  
+                            case 401:  
+                                break;  
+                            case 404:  
+                                break;  
+                            case 500:  
+                                break;  
+                        }  
+                    }   
+                });  
+            }
+            function tsbCreate_click() {
+                __win.window('open');
+            }
+            function save() {
+                var _url = 'http://localhost:8888/api/orderHdr/save';
+                $.ajax({  
+                    async:false,
+                    url:_url,    
+                    type: "POST",  
+                    dataType: "json",  
+                    contentType:"application/json",
+                    data: JSON.stringify({
+                        "whid" : $("#WHID").val(),
+                        "formno" : $("#Formno").val(),
+                        "ts" : $("#TS").val()
+                    }),  
+                    success: function(data) {
+                        if(parseInt(data.code)>0){
+                            //alert(data.message);
+                            $.messager.alert('消息', data.message, 'info');
+                            //$("#grdHdr").datagrid('reload');
+                            tsbSearch_click();
+                            __win.window('close');
+                        }
+                    },  
+                    error:function(XMLHttpRequest, textStatus, errorThrown){  
+                        switch(XMLHttpRequest.status){  
+                            case 401:  
+                                break;  
+                            case 404:  
+                                break;  
+                            case 500:  
+                                break;  
+                        }  
+                    }   
+                });  
+            }
+            
+            function tsbOpen_click() {
+                var dataItem = $("#grdHdr").datagrid("getSelected");
+                // var index = $("#grdHdr").datagrid("getRowIndex", dataItem);
+                if (dataItem == null) {
+                    $.messager.alert('编辑', '请在表格中选择编辑的数据', 'info');
+                    return;
+                }
+                __win.window('open');
+                $("#WHID").val(dataItem.whid);
+                $("#Formno").val(dataItem.formno);
+                $("#TS").val(dataItem.ts);
+                
+            }
+            function deleteItem(item) {
+                var _url = 'http://localhost:8888/api/orderHdr/delete';
+                $.ajax({  
+                    async:false,
+                    url:_url,    
+                    type: "POST",  
+                    dataType: "json",  
+                    contentType:"application/json",
+                    data: JSON.stringify({
+                        "whid" : item.whid,
+                        "formno" :item.formno
+                    }),  
+                    success: function(data) {
+                        if(parseInt(data.code)>0){
+                            //alert(data.message);
+                            $.messager.alert('消息', data.message, 'info');
+                            //$("#grdHdr").datagrid('reload');
+                            tsbSearch_click();
+                            __win.window('close');
+                        }
+                    },  
+                    error:function(XMLHttpRequest, textStatus, errorThrown){  
+                        switch(XMLHttpRequest.status){  
+                            case 401:  
+                                break;  
+                            case 404:  
+                                break;  
+                            case 500:  
+                                break;  
+                        }  
+                    }   
+                });  
+            }
+            function tsbDelete_click() {
+                var dataItem = $("#grdHdr").datagrid("getSelected");
+                if (dataItem == null) {
+                    $.messager.alert('删除', '在表格中选择要删除的记录', 'info');
+                    return;
+                }
+                $.messager.confirm('删除', '确定要删除选定的记录？', function (r) {
+                    if (r) {
+                        deleteItem(dataItem);
+                    }
+                });
+    
+            }
+            function tsbCheck_click() {
+    
+            }
+            function tsbPrint_click() {
+    
+            }
+            function tsbExport_click() {
+    
+            }
+            function tsbCal_click() {
+    
+            }
+            function onHdrGridSelect(index, row) {
+                disabledLoading = true;
+                var condition = searchObj.getCondition();
+    //             execFunc("@url", "GetDtlList", { "formno": row.Formno, "condition": JSON.stringify(condition) }, function (data) {
+    //                 $("#grdDtl").datagrid("loadData", data);
+    //             });
+                var _url = 'http://localhost:8888/api/orderDtl/list';
+                $.ajax({  
+                    url:_url,    
+                    type: "POST",  
+                    dataType: "json",  
+                    contentType:"application/json",
+                    // data: JSON.stringify(condition),  
+                    data: JSON.stringify({
+                        "formno" : row.formno,
+                        "condition" : condition
+                    }),  
+                    success: function(data) { 
+                        $("#grdDtl").datagrid("loadData", data);
+                    },  
+                    error:function(XMLHttpRequest, textStatus, errorThrown){  
+                        switch(XMLHttpRequest.status){  
+                            case 401:  
+                                break;  
+                            case 404:  
+                                break;  
+                            case 500:  
+                                break;  
+                        }  
+                    }   
+                });  
+            }
+    
+            function datetimebillColumn(value, row, index) {
+                if (value == null) {
+                    return "";
+                }
+                try{
+                    var dd = new Date(value);
+    
+                    return dd.Format("yyyy-MM-dd hh:mm");
+                }
+                catch (err) {
+                    return value;
+                }
+            }
+            function getLeaveAmount(value, row, index) {
+                return (row.Leave * row.Price).toFixed(2);
+            }
+            function formatMoney(value, row, index) {
+                return value.toFixed(2); //fmoney(value);
+            }
+            function rowStyler(index, row) {
+                if (row.Tag == null)
+                    return;
+                if (row.Tag == true) {
+                    return 'color:red;font-weight:bold;';
+                }
+                return 'color:blue;font-weight:bold;';
+            }
+            function tagFormatter(value, row, index) {
+                if (value == null) {
+                    return "";
+                }
+                else
+                {
+                    return value?"红单":"蓝单";
+                }
+            }
+    
+        </script>
+    
+            
+        </div>
+    </body>
+    </html>
+    

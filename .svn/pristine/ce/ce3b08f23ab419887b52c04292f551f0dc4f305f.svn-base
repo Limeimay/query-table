@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>公共模板查询</title>
+    <link rel="stylesheet" href="Scripts/element-ui/lib/theme-chalk/index.css" />
+    <script src="Scripts/vue/dist/vue.js"></script>
+    <script src="Scripts/element-ui/lib/index.js"></script>
+    <script src="Scripts/axios/dist/axios.min.js"></script>
+    <script src="Scripts/cool/cool-dialog.js"></script>
+    <script src="Scripts/cool-front/cool-query.js"></script>
+    <script src="Scripts/cool-front/cool-table.js"></script>
+    <style>
+        * {
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+        }
+        tr {
+            height: 40px
+        }
+        .el-container,.el-main,.el-header,.el-footer{
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="vm">
+        <el-container>
+                
+                <el-aside width="20%">
+                    <el-container>
+                        <el-header style="padding-top: 13px">
+                            <i class="el-icon-question"></i>
+                            <span>查询条件</span>
+                        </el-header>
+                        <el-main>
+                            <cool-query @changecondition="getCondition"></cool-query>
+                        </el-main>
+                    </el-container>
+                </el-aside>
+                <el-main>
+                    <el-container>                            
+                        <el-main>
+                                <div style="margin-top: 10px;">查询结果</div>
+                                <el-dialog title="申请采购单编辑" :visible.sync="dialog.dialogFormVisible">
+                                    <el-form :model="form">
+                                      <el-form-item label="仓库编号" :label-width="dialog.formLabelWidth">
+                                        <el-input v-model="form.whid" auto-complete="off" size="small" style="width:200px"></el-input>
+                                      </el-form-item>
+                                      <el-form-item label="单号" :label-width="dialog.formLabelWidth">
+                                        <el-input v-model="form.formno" auto-complete="off" size="small" style="width:200px"></el-input>
+                                      </el-form-item>
+                                    </el-form>
+                                    <div style="margin-left: 60px">
+                                      <el-button @click="cancle">取 消</el-button>
+                                      <el-button type="primary" @click="save">保 存</el-button>
+                                    </div>
+                                  </el-dialog>
+                                <cool-table border="" size="small" button-round="" button-group-class="el-header" table-style="border: solid #DCDFE6 10px;width:80%;height:30vh;margin-top:10px;overflow:auto"
+                                 pagination-style="padding: 10px;width:550px" :buttons="buttons" @table-current-change="getDtlData"
+                                @button-click="buttonsevent" :columns="Hdrcolumns" :total="total" :current-page="pagination.currentPage" :page-sizes="pagination.pageSizes" 
+                                :data="HdrData" :page-size="pagination.pageSize"  @pagination-size-change="handleSizeChange" @pagination-current-change="handleCurrentChange" >
+                                </cool-table>
+                        </el-main>
+                        <el-footer height="350px" style="margin-top: 10vh">
+                        <cool-table pagination-style="padding: 10px;display:none;" :columns="Dtlcolumns"  :total="total" :layout="layout" 
+                        table-style="border: solid #DCDFE6 10px;width:80%;height:30vh;" background="" :data="DtlData">
+                        </cool-table>
+                    </el-footer>
+                    </el-container>
+                </el-main>
+        </el-container>
+    </div>
+    <script>
+         String.prototype.trim=function(){
+        return this.replace(/(^\s*)|(\s*$)/g, "");
+    }
+        var vm = new Vue({
+            el: '#vm',           
+            data: {
+                HdrData: [],
+                DtlData: [],                             
+                currentRow:'',
+                condition:[],
+                total:0,
+                form:{whid:'',formno:''},
+                layout:"total, sizes, prev, pager, next, jumper",
+                buttons:[
+                {type:'text',text:"查找",size:"small",icon:"el-icon-search",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"新建",size:"small",icon:"el-icon-plus",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"编辑",size:"small",icon:"el-icon-edit",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"删除",size:"small",icon:"el-icon-delete",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"审核",size:"small",icon:"el-icon-check",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"打印",size:"small",icon:"el-icon-printer",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined},
+                {type:'text',text:"导出",size:"small",icon:"el-icon-sold-out",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined}, 
+                {type:'text',text:"统计",size:"small",icon:"el-icon-phone",nativeType:"", disabled:false,plain:"",autofocus:"",round:"" ,key:undefined}, ],
+                Dtlcolumns:[
+                {prop:"sn", label:"仓库编码"},
+                {prop:"code" ,label:"产品编号" },
+                {prop:"leave", label:"剩余"},
+                {prop:"qty", label:"数量"},
+                {prop:"codeName", label:"名称"},
+                ],
+                Hdrcolumns:[
+                {prop:"whid", label:"仓库编码"},
+                {prop:"formno" ,label:"单号" },
+                {prop:"contractNo", label:"合同号"},
+                {prop:"description", label:"描述"},
+                ],
+                pagination:{currentPage: 1,pageSizes:[5,10,20,40,60],pageSize:20},  
+                dialog:{dialogTableVisible: false,dialogFormVisible: false,formLabelWidth: '120px', top: "300px",},                                                     
+            },        
+            methods: {
+                getCondition:function(playload){
+                    this.condition=playload;
+                },
+                getHdrData:function(){
+                    var _this=this
+                   axios.post('http://192.168.1.98:8888/api/orderHdr/queryByPage', {
+                    condition:_this.condition,
+                    page:{rows: _this.pagination.pageSize, page: _this.pagination.currentPage}
+                    }).then(function (response) {
+                        _this.HdrData=response.data.rows
+                        _this.total=response.data.total;
+                        _this.DtlData=[]                       
+                     })   
+                },
+                getDtlData:function(ev){
+                    if(ev!=null){
+                    var _this=this
+                    axios.post('http://192.168.1.98:8888/api/orderDtl/list', {
+                    condition:_this.condition,
+                    formno:ev.formno
+                    }).then(function (response) {                    
+                        _this.DtlData=response.data
+                     })
+                    }
+                },
+               save:function(){
+                   var _this=this
+                    axios.post('http://192.168.1.98:8888/api/orderHdr/save', {
+                    whid:this.form.whid,
+                    ts:'',
+                    formno:this.form.formno
+                    }).then(function (response) {
+                       if(response.data.code>0){
+                           alert('消息：'+response.data.message);
+                           _this.form={whid:'',formno:''}
+                           _this.dialog.dialogFormVisible = false
+                           _this.getHdrData()
+                       }
+                       else{
+                           console.debug('保存失败');
+                           _this.dialog.dialogFormVisible = false
+                       }
+                     })
+               },
+               cancle:function(){
+                this.dialog.dialogFormVisible = false;
+                this.form={whid:'',formno:''}
+               },
+               editTab:function(){
+                    if(this.DtlData.length==0){
+                        alert('请在表格中选择编辑的数据')
+                    }
+                    else{
+                        this.dialog.dialogFormVisible = true
+                        this.form.whid=this.DtlData[0].whid;
+                        this.form.formno=this.DtlData[0].formno;
+                    }
+               },
+               delTab:function(){
+                   _this=this
+                if(this.DtlData.length==0){
+                        alert('请在表格中选择删除的数据')
+                    }
+                    else{
+                        if(confirm('确定要删除选定的记录')){
+                            axios.post('http://192.168.1.98:8888/api/orderHdr/delete', {
+                                formno:_this.DtlData[0].formno,
+                                whid:_this.DtlData[0].whid
+                    }).then(function (response) {
+                        if(response.data.code>0){
+                            alert(response.data.message)
+                        }
+                        _this.getHdrData()
+                     })
+                        }
+                    }
+               } ,
+               buttonsevent:function(args){
+                   switch (args.currentTarget.textContent) {
+                       case '查找':{this.getHdrData();break}
+                       case "新建":{this.dialog.dialogFormVisible = true;break}
+                       case "编辑":{this.editTab();break}
+                       case "删除":{this.delTab();break}
+                       default:break;
+                            
+                   }
+               },
+               handleSizeChange:function(args){
+                this.pagination.pageSize=args;
+                this.getHdrData();
+               }  ,
+               handleCurrentChange:function(args){
+                   this.pagination.currentPage=args;
+                   this.getHdrData();
+               }
+            }
+        })
+    </script>
+</body>
+</html>
